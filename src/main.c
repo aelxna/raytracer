@@ -225,8 +225,25 @@ void generate_image(vec3_t *pixels, config_t *c) {
 				vec3_t sp = vec3_scale((tr.s->mtl.ks * fmax(0.0, pow(dot(normal, h), tr.s->mtl.n))), tr.s->mtl.specular);
 				
 				vec3_t li = vec3_scale(cl->i.x, vec3_add(df, sp));
+				
+				// check if shadow
+				float shadow = 1.0;
+				ray3_t sr = ray3_new(p, l);
 
-				illum = vec3_add(illum, li);
+				trace_t st = trace_ray(&sr, c->sphere_head, tr.s);
+				
+				if (st.t > 0) { // found intersection
+					if (cl->w) {
+						float light_dist = vec3_len(vec3_add(cl->pos, vec3_scale(-1, p)));
+						if (light_dist >= st.t) {
+							shadow = 0.0;
+						}
+					} else {
+						shadow = 0.0;
+					}
+				} 
+
+				illum = vec3_add(illum, vec3_scale(shadow, li));
 				
 				cl = cl->next;
 			}
