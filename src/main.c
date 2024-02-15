@@ -119,6 +119,13 @@ int generate_config(FILE *fc, config_t *c) {
 	return ret_val;
 }
 
+/*
+ * Finds the distance between the ray origin and the closest intersection pt
+ * r: ray
+ * s: head of sphere list
+ * skip: ptr to sphere that should be skipped in calculations
+ * returns trace_t containing intersecting sphere and distance t
+ */
 trace_t trace_ray(ray3_t *r, sphere_t *s, sphere_t *skip) {
 	// find closest sphere that can be displayed at that pixel and set the color accordingly
 	float dist = -1.0;
@@ -206,21 +213,24 @@ void generate_image(vec3_t *pixels, config_t *c) {
 	
 		trace_t tr = trace_ray(&r, c->sphere_head, NULL);
 
-		if (tr.s) {
+		if (tr.s) { // intersected with a sphere
+			// set up lighting equation variables
 			vec3_t illum = vec3_scale(tr.s->mtl.ka, tr.s->mtl.diffuse);
 			vec3_t p = vec3_add(r.origin, vec3_scale(tr.t, r.dir));
 			vec3_t normal = normalize(vec3_add(p, vec3_scale(-1, tr.s->center)));
 			vec3_t vi = normalize(vec3_scale(-1, r.dir));
 			vec3_t l, h;
+
 			light_t *cl = c->light_head;
-			while (cl) {
-				if (cl->w) {
+			while (cl) { // iterates through light_t linked list
+				if (cl->w) { // point light
 					l = normalize(vec3_add(cl->pos, vec3_scale(-1, p)));	
-				} else {
+				} else { // directional light
 					l = normalize(vec3_scale(-1, cl->pos));
 				}
 				h = normalize(vec3_add(l, vi));
 				
+				// calculate diffuse and specular components
 				vec3_t df = vec3_scale((tr.s->mtl.kd * fmax(0.0, dot(normal, l))), tr.s->mtl.diffuse);
 				vec3_t sp = vec3_scale((tr.s->mtl.ks * fmax(0.0, pow(dot(normal, h), tr.s->mtl.n))), tr.s->mtl.specular);
 				
@@ -229,11 +239,13 @@ void generate_image(vec3_t *pixels, config_t *c) {
 				// check if shadow
 				float shadow = 1.0;
 				ray3_t sr = ray3_new(p, l);
-
+				
+				// trace ray between p and light
 				trace_t st = trace_ray(&sr, c->sphere_head, tr.s);
 				
 				if (st.t > 0) { // found intersection
-					if (cl->w) {
+					if (cl->w) { // point light
+						// check if the intersection is past the light (no shadow) or not (yes shadow)
 						float light_dist = vec3_len(vec3_add(cl->pos, vec3_scale(-1, p)));
 						if (light_dist >= st.t) {
 							shadow = 0.0;
@@ -247,6 +259,7 @@ void generate_image(vec3_t *pixels, config_t *c) {
 				
 				cl = cl->next;
 			}
+			// clamp down to 1
 			pixels[i] = rgb_clamp(illum);
 		} else {
 			pixels[i] = c->bkgcolor;
