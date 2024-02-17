@@ -54,11 +54,11 @@ typedef struct Light light_t;
 struct Light {
 	vec3_t pos;
 	int w;
-	vec3_t i;
+	float i;
 	light_t *next;
 };
 
-light_t light_new(vec3_t p, int w, vec3_t i);
+light_t light_new(vec3_t p, int w, float i);
 
 // Used to store configuration options
 typedef struct {

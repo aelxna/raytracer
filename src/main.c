@@ -19,7 +19,7 @@ int generate_config(FILE *fc, config_t *c) {
 	float br, bg, bb;
 	float odr, odg, odb, osr, osg, osb, ka, kd, ks, n;
 	float sx, sy, sz, sr;
-	float lx, ly, lz, ix, iy, iz;
+	float lx, ly, lz, i;
 	int lw;
 	mtl_t mtlcolor;
 	// check if each mandatory config is present
@@ -68,9 +68,9 @@ int generate_config(FILE *fc, config_t *c) {
 				curr->next = new_sphere;
 			}
 			continue;
-		} else if (sscanf(ln, "light %f %f %f %d %f %f %f", &lx, &ly, &lz, &lw, &ix, &iy, &iz) == 7) { 
+		} else if (sscanf(ln, "light %f %f %f %d %f", &lx, &ly, &lz, &lw, &i) == 5) { 
 			light_t *new_light = malloc(sizeof(light_t));
-			*new_light = light_new(vec3_new(lx, ly, lz), lw, rgb_new(ix, iy, iz));
+			*new_light = light_new(vec3_new(lx, ly, lz), lw, fmin(1.0, fmax(0.0, i)));
 			light_t *curr = c->light_head;
 			if (curr == NULL) {
 				c->light_head = new_light;
@@ -234,7 +234,7 @@ void generate_image(vec3_t *pixels, config_t *c) {
 				vec3_t df = vec3_scale((tr.s->mtl.kd * fmax(0.0, dot(normal, l))), tr.s->mtl.diffuse);
 				vec3_t sp = vec3_scale((tr.s->mtl.ks * fmax(0.0, pow(dot(normal, h), tr.s->mtl.n))), tr.s->mtl.specular);
 				
-				vec3_t li = vec3_scale(cl->i.x, vec3_add(df, sp));
+				vec3_t li = vec3_scale(cl->i, vec3_add(df, sp));
 				
 				// check if shadow
 				float shadow = 1.0;

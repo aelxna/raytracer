@@ -36,7 +36,7 @@ ray3_t ray3_new(vec3_t o, vec3_t d) {
 	return r;
 }
 
-light_t light_new(vec3_t p, int w, vec3_t i) {
+light_t light_new(vec3_t p, int w, float i) {
 	light_t l = { 
 		.pos = p, 
 		.w = w, 
