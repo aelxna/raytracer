@@ -10,7 +10,7 @@ vec3_t vec3_new(float x, float y, float z) {
 	return v;
 }
 
-vec3_t vec3_add(vec3_t u, vec3_t v) {
+vec3_t add(vec3_t u, vec3_t v) {
 	vec3_t a = {
 		.x = u.x + v.x,
 		.y = u.y + v.y,
@@ -19,11 +19,29 @@ vec3_t vec3_add(vec3_t u, vec3_t v) {
 	return a;
 }
 
-vec3_t vec3_scale(float s, vec3_t v) {
+vec3_t sub(vec3_t u, vec3_t v) {
+	vec3_t a = {
+		.x = u.x - v.x,
+		.y = u.y - v.y,
+		.z = u.z - v.z
+	};
+	return a;
+}
+
+vec3_t scale(float s, vec3_t v) {
 	vec3_t a = {
 		.x = s * v.x,
 		.y = s * v.y,
 		.z = s * v.z
+	};
+	return a;
+}
+
+vec3_t negate(vec3_t v) {
+	vec3_t a = {
+		.x = -v.x,
+		.y = -v.y,
+		.z = -v.z
 	};
 	return a;
 }
@@ -41,15 +59,19 @@ vec3_t cross(vec3_t u, vec3_t v) {
 	return a;
 }
 
-float vec3_len(vec3_t v) {
-	return sqrtf((v.x * v.x) + (v.y * v.y) + (v.z * v.z));
+float sq_mag(vec3_t v) {
+	return dot(v, v);
+}
+
+float len(vec3_t v) {
+	return sqrtf(sq_mag(v));
 }
 
 vec3_t normalize(vec3_t v) {
-	return vec3_scale((1.0 / vec3_len(v)), v);
+	return scale((1.0 / len(v)), v);
 }
 
-int vec3_equal(vec3_t u, vec3_t v) {
+int equal(vec3_t u, vec3_t v) {
 	return (
 		(u.x == v.x) &&
 		(u.y == v.y) &&

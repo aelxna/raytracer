@@ -1,4 +1,4 @@
-# Assignment 1a: Getting Started with Ray Casting
+# Assignment 1b: Light and Shadow
 
 ## Compiling
 A Makefile is provided. Run `make` to compile.

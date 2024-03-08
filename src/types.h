@@ -21,23 +21,33 @@ mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n);
 */ 
 void rgb_str(char *str, vec3_t *c);
 
-typedef struct Sphere sphere_t;
-
 /*
-* Sphere containing its center point, radius, material color, 
-* and a pointer to the next sphere in a linked list
+* Sphere containing its center point, radius, material color 
 */
-struct Sphere {
+typedef struct {
 	vec3_t center;
 	float radius;
 	mtl_t mtl;
-	sphere_t *next;
-};
+} sphere_t;
+
+typedef struct {
+	int vertices[3];
+	int normals[3];
+	vec3_t snorm;
+	float d;
+	int texcoords[3];
+	mtl_t mtl;
+} triangle_t;
 
 /*
 * Creates a new sphere_t given a center point, radius, and color
 */
 sphere_t sphere_new(vec3_t c, float r, mtl_t m);
+
+/*
+* Creates a new triangle_t given vertices, normals, texture coords (optional), and mtlcolor
+*/
+triangle_t triangle_new(int *v, int *n, vec3_t sn, int *tc, mtl_t m);
 
 // Represents a ray with an origin point and a direction
 typedef struct {
@@ -60,6 +70,14 @@ struct Light {
 
 light_t light_new(vec3_t p, int w, float i);
 
+typedef struct Texture texture_t;
+
+struct Texture {
+	int width, height;
+	vec3_t *img;
+	texture_t *next;
+};
+
 // Used to store configuration options
 typedef struct {
 	vec3_t eye;
@@ -69,17 +87,36 @@ typedef struct {
 	int width;
 	int height;
 	vec3_t bkgcolor;
-	sphere_t *sphere_head;
+	shape_t *shape_head;
 	light_t *light_head;
+	texture_t *texture_head;
+	vec3_t vertices[4096];
+	vec3_t normals[4096];
+	float texcoords[2][4096];
 } config_t;
 
-/*
-* Free spheres from linked list given pointer to head
-*/
-void free_spheres(sphere_t *head);
+typedef enum {
+	SPHERE,
+	TRIANGLE,
+	NONE
+} objtype_t;
+
+void free_config(config_t *c);
+
+typedef struct Shape shape_t;
+
+struct Shape {
+	objtype_t type;
+	union {
+		sphere_t s;
+		triangle_t t;
+	} data;
+	shape_t *next;
+};
 
 typedef struct {
-	sphere_t *s;
+	objtype_t type;
+	void *shape;
 	float t;
 } trace_t;
 

@@ -22,10 +22,30 @@ sphere_t sphere_new(vec3_t c, float r, mtl_t m) {
 	sphere_t s = {
 		.center = c,
 		.radius = r,
-		.mtl = m,
-		.next = NULL
+		.mtl = m
 	};
 	return s;
+}
+
+triangle_t triangle_new(int *v, int *n, vec3_t sn, int *tc, mtl_t m) {
+	triangle_t t = {
+		.snorm = sn,
+		.mtl = m
+	};
+	for (int i = 0; i < 3; i++) {
+		t.vertices[i] = v[i];
+		if (n) {
+			t.normals[i] = n[i];
+		} else {
+			t.normals[i] = -1;
+		}
+		if (tc) {
+			t.texcoords[i] = tc[i];
+		} else {
+			t.texcoords[i] = -1;
+		}
+	}
+	return t;
 }
 
 ray3_t ray3_new(vec3_t o, vec3_t d) {
@@ -46,11 +66,36 @@ light_t light_new(vec3_t p, int w, float i) {
 	return l;
 }
 
-void free_spheres(sphere_t *head) {
+void free_shapes(shape_t *head) {
 	while (head) {
-		sphere_t *next = head->next;
+		switch (head->type) {
+			case SPHERE:
+				free(head->data.s);
+				break;
+			case TRIANGLE:
+				free(head->data.t);
+				break;
+			case NONE:
+				break;
+		}
+		shape_t *next = head->next;
 		free(head);
 		head = next;
 	}
 }
 
+void free_lights(light_t *head) {
+	while (head) {
+		light_t *next = head->next;
+		free(head);
+		head = next;
+	}
+}
+
+void free_config(config_t *c) {
+	if (c) {
+		free_shapes(c->shape_head);
+		free_lights(c->light_head);
+		free(c);
+	}
+}
