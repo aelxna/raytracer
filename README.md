@@ -1,4 +1,4 @@
-# Assignment 1b: Light and Shadow
+# Assignment 1c: Triangles and Texture
 
 ## Compiling
 A Makefile is provided. Run `make` to compile.

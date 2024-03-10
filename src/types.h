@@ -6,12 +6,31 @@
 
 typedef uint8_t u8;
 
+typedef enum {
+	SPHERE,
+	TRIANGLE,
+	NONE
+} objtype_t;
+
 typedef struct {
 	vec3_t diffuse, specular;
 	float ka, kd, ks, n;
 } mtl_t;
 
 mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n);
+
+typedef struct Texture texture_t;
+
+struct Texture {
+	int width, height;
+	vec3_t *img;
+	texture_t *next;
+};
+
+/*
+ * Look up the color at a point in a texture given u and v coords
+ */
+vec3_t texture_lookup(texture_t *tx, float u, float v);
 
 /*
 * Converts the given color into a string stored in str
@@ -21,33 +40,33 @@ mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n);
 */ 
 void rgb_str(char *str, vec3_t *c);
 
-/*
-* Sphere containing its center point, radius, material color 
-*/
 typedef struct {
 	vec3_t center;
 	float radius;
+	texture_t *texture;
 	mtl_t mtl;
 } sphere_t;
 
 typedef struct {
 	int vertices[3];
 	int normals[3];
+	vec3_t e1, e2;
 	vec3_t snorm;
 	float d;
 	int texcoords[3];
+	texture_t *texture;
 	mtl_t mtl;
 } triangle_t;
 
 /*
 * Creates a new sphere_t given a center point, radius, and color
 */
-sphere_t sphere_new(vec3_t c, float r, mtl_t m);
+sphere_t sphere_new(vec3_t c, float r, texture_t *tx, mtl_t m);
 
 /*
-* Creates a new triangle_t given vertices, normals, texture coords (optional), and mtlcolor
+* Creates a new triangle_t given vertices, normals (optional), texture coords (optional), and mtlcolor
 */
-triangle_t triangle_new(int *v, int *n, vec3_t sn, int *tc, mtl_t m);
+triangle_t triangle_new(int *v, int *n, int *tc, texture_t *tx, mtl_t m);
 
 // Represents a ray with an origin point and a direction
 typedef struct {
@@ -70,12 +89,16 @@ struct Light {
 
 light_t light_new(vec3_t p, int w, float i);
 
-typedef struct Texture texture_t;
+typedef struct Shape shape_t;
 
-struct Texture {
-	int width, height;
-	vec3_t *img;
-	texture_t *next;
+// Linked list node/wrapper for shapes
+struct Shape {
+	objtype_t type;
+	union {
+		sphere_t s;
+		triangle_t t;
+	} data;
+	shape_t *next;
 };
 
 // Used to store configuration options
@@ -90,33 +113,15 @@ typedef struct {
 	shape_t *shape_head;
 	light_t *light_head;
 	texture_t *texture_head;
-	vec3_t vertices[4096];
-	vec3_t normals[4096];
-	float texcoords[2][4096];
 } config_t;
-
-typedef enum {
-	SPHERE,
-	TRIANGLE,
-	NONE
-} objtype_t;
 
 void free_config(config_t *c);
 
-typedef struct Shape shape_t;
-
-struct Shape {
-	objtype_t type;
-	union {
-		sphere_t s;
-		triangle_t t;
-	} data;
-	shape_t *next;
-};
-
+// Contains results from a call to trace_ray
 typedef struct {
 	objtype_t type;
 	void *shape;
+	float b, g;
 	float t;
 } trace_t;
 

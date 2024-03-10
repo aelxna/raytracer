@@ -6,6 +6,12 @@
 #include "types.h"
 #include "debug.h"
 
+#define MAX_VERTS 12288
+
+vec3_t vertices[MAX_VERTS];
+vec3_t normals[MAX_VERTS];
+float texcoords[MAX_VERTS][2];
+
 /*
  * Parses input file for configurations
  * fc: pointer to config file
@@ -14,15 +20,20 @@
  */
 int generate_config(FILE *fc, config_t *c) {
 	char ln[512];
+	char file[512];
 	float vx, vy, vz;
 	float ux, uy, uz;
 	float br, bg, bb;
-	float odr, odg, odb, osr, osg, osb, ka, kd, ks, n;
+	float odr, odg, odb, osr, osg, osb, ka, kd, ks, nx;
 	float sx, sy, sz, sr;
 	float lx, ly, lz, i;
 	int lw;
 	mtl_t mtlcolor;
 	int vindex = 0, nindex = 0, tcindex = 0;
+	int v[3];
+	int n[3];
+	int tc[3];
+	texture_t *texture_tail = NULL;
 	// check if each mandatory config is present
 	int initialized[7] = {0};
 	// read each line and find the pattern (if any) that each line follows
@@ -49,19 +60,20 @@ int generate_config(FILE *fc, config_t *c) {
 			c->bkgcolor = rgb_new(br, bg, bb);
 			initialized[6] = 1;
 			continue;
-		} else if (sscanf(ln, "mtlcolor %f %f %f %f %f %f %f %f %f %f", &odr, &odg, &odb, &osr, &osg, &osb, &ka, &kd, &ks, &n) == 10) {
+		} else if (sscanf(ln, "mtlcolor %f %f %f %f %f %f %f %f %f %f", &odr, &odg, &odb, &osr, &osg, &osb, &ka, &kd, &ks, &nx) == 10) {
 			mtlcolor = mtl_new(
 				rgb_new(odr, odg, odb),
 				rgb_new(osr, osg, osb),
-				ka, kd, ks, n
+				ka, kd, ks, nx
 			);
 			continue;
 		} else if (sscanf(ln, "sphere %f %f %f %f", &sx, &sy, &sz, &sr) == 4) { 
 			sphere_t *new_sphere = malloc(sizeof(sphere_t));
-			*new_sphere = sphere_new(vec3_new(sx, sy, sz), sr, mtlcolor);
+			*new_sphere = sphere_new(vec3_new(sx, sy, sz), sr, texture_tail, mtlcolor);
+			// create shape node
 			shape_t *new_shape = malloc(sizeof(shape_t));
 			new_shape->type = SPHERE;
-			new_shape->data.s = new_sphere;
+			new_shape->data.s = *new_sphere;
 			new_shape->next = NULL;
 
 			shape_t *curr = c->shape_head;
@@ -85,6 +97,129 @@ int generate_config(FILE *fc, config_t *c) {
 					curr = curr->next;
 				}
 				curr->next = new_light;
+			}
+			continue;
+		} else if (sscanf(ln, "v %f %f %f", &vx, &vy, &vz) == 3) {
+			vertices[vindex] = vec3_new(vx, vy, vz);
+			vindex++;
+			continue;
+		} else if (sscanf(ln, "f %d %d %d", v, v+1, v+2) == 3) {
+			triangle_t t = triangle_new(v, NULL, NULL, NULL, mtlcolor);
+			// create shape node
+			shape_t *new_shape = malloc(sizeof(shape_t));
+			new_shape->type = TRIANGLE;
+			new_shape->data.t = t;
+			new_shape->next = NULL;
+			
+			shape_t *curr = c->shape_head;
+			if (curr == NULL) {
+				c->shape_head = new_shape;
+			} else {
+				while (curr->next) {
+					curr = curr->next;
+				}
+				curr->next = new_shape;
+			}
+			continue;
+		} else if (sscanf(ln, "vn %f %f %f", &ux, &uy, &uz) == 3) {
+			normals[nindex] = normalize(vec3_new(ux, uy, uz));
+			nindex++;
+			continue;
+		} else if (sscanf(ln, "f %d//%d %d//%d %d//%d", v, n, v+1, n+1, v+2, n+2) == 6) {
+			triangle_t t = triangle_new(v, n, NULL, NULL, mtlcolor);
+			// create shape node
+			shape_t *new_shape = malloc(sizeof(shape_t));
+			new_shape->type = TRIANGLE;
+			new_shape->data.t = t;
+			new_shape->next = NULL;
+			
+			shape_t *curr = c->shape_head;
+			if (curr == NULL) {
+				c->shape_head = new_shape;
+			} else {
+				while (curr->next) {
+					curr = curr->next;
+				}
+				curr->next = new_shape;
+			}
+			continue;
+		} else if (sscanf(ln, "texture %s", file) == 1) {
+			FILE *ft = fopen(file, "r");
+			if (ft == NULL) {
+				perror("Could not open texture file");
+				continue;
+			}
+			fgets(ln, 512, ft);
+			int width, height;
+			sscanf(ln, "P3 %d %d 255", &width, &height);
+			vec3_t *tx = malloc(sizeof(vec3_t) * width * height);
+			int r, g, b;
+			int i = 0;
+			while (fscanf(ft, "%d %d %d ", &r, &g, &b) != EOF) {
+				// convert rgb to float vals before storing them
+				float rf = (float)(r) / 255.0;
+				float gf = (float)(g) / 255.0;
+				float bf = (float)(b) / 255.0;
+				tx[i++] = rgb_new(rf, gf, bf);
+			}
+			// link to last saved texture for future objects to use texture
+			texture_tail = malloc(sizeof(texture_t));
+			texture_tail->width = width;
+			texture_tail->height = height;
+			texture_tail->img = tx;
+			texture_tail->next = NULL;
+			
+			fclose(ft);
+
+			texture_t *curr = c->texture_head;
+			if (curr == NULL) {
+				c->texture_head = texture_tail;
+			} else {
+				while (curr->next) {
+					curr = curr->next;
+				}
+				curr->next = texture_tail;
+			}
+			continue;
+		} else if (sscanf(ln, "vt %f %f", &ux, &uy) == 2) {
+			texcoords[tcindex][0] = ux;
+			texcoords[tcindex][1] = uy;
+			tcindex++;
+			continue;
+		} else if (sscanf(ln, "f %d/%d %d/%d %d/%d/", v, tc, v+1, tc+1, v+2, tc+2) == 6) {
+			triangle_t t = triangle_new(v, NULL, tc, texture_tail, mtlcolor);
+			// create shape node
+			shape_t *new_shape = malloc(sizeof(shape_t));
+			new_shape->type = TRIANGLE;
+			new_shape->data.t = t;
+			new_shape->next = NULL;
+			
+			shape_t *curr = c->shape_head;
+			if (curr == NULL) {
+				c->shape_head = new_shape;
+			} else {
+				while (curr->next) {
+					curr = curr->next;
+				}
+				curr->next = new_shape;
+			}
+			continue;
+		} else if (sscanf(ln, "f %d/%d/%d %d/%d/%d %d/%d/%d", v, tc, n, v+1, tc+1, n+1, v+2, tc+2, n+2) == 9) {
+			triangle_t t = triangle_new(v, n, tc, texture_tail, mtlcolor);
+			// create shape node
+			shape_t *new_shape = malloc(sizeof(shape_t));
+			new_shape->type = TRIANGLE;
+			new_shape->data.t = t;
+			new_shape->next = NULL;
+			
+			shape_t *curr = c->shape_head;
+			if (curr == NULL) {
+				c->shape_head = new_shape;
+			} else {
+				while (curr->next) {
+					curr = curr->next;
+				}
+				curr->next = new_shape;
 			}
 			continue;
 		}
@@ -117,7 +252,7 @@ int generate_config(FILE *fc, config_t *c) {
 		ret_val = -1;
 	}
 
-	if (initialized[3] && initialized[4] && (vec3_equal(c->viewdir, c->updir) || vec3_equal(c->viewdir, vec3_scale(-1.0, c->updir)))) {
+	if (initialized[3] && initialized[4] && (equal(c->viewdir, c->updir) || equal(c->viewdir, negate(c->updir)))) {
 		printf("Error: updir and viewdir are co-linear\n");
 		ret_val = -1;
 	}
@@ -135,9 +270,11 @@ int generate_config(FILE *fc, config_t *c) {
 trace_t trace_ray(ray3_t *r, shape_t *s, void *skip) {
 	// find closest sphere that can be displayed at that pixel and set the color accordingly
 	trace_t ret = {
-		.type = NONE;
-		.t = -1.0;
-	}
+		.type = NONE,
+		.b = -1.0,
+		.g = -1.0,
+		.t = -1.0
+	};
 	void *si = NULL;
 	while (s) {
 		switch (s->type) {
@@ -173,7 +310,29 @@ trace_t trace_ray(ray3_t *r, shape_t *s, void *skip) {
 			case TRIANGLE:
 				triangle_t *tri = &s->data.t;
 				if ((void *)tri != skip) {
-
+					if (dot(tri->snorm, r->dir) == 0) { break; }
+					// find collision with plane
+					float t1 = -(dot(tri->snorm, r->origin) + tri->d) / dot(tri->snorm, r->dir);
+					vec3_t pt = add(r->origin, scale(t1, r->dir));
+					vec3_t ep = sub(pt, vertices[tri->vertices[0]]);
+					float det = (sq_mag(tri->e1) * sq_mag(tri->e2)) - (dot(tri->e1, tri->e2) * dot(tri->e1, tri->e2));
+					if (det == 0) { break; }
+					// get barycentric coordinates
+					float beta = ((sq_mag(tri->e2) * dot(tri->e1, ep)) - (dot(tri->e1, tri->e2) * dot(tri->e2, ep))) / det;
+					float gamma = ((sq_mag(tri->e1) * dot(tri->e2, ep)) - (dot(tri->e1, tri->e2) * dot(tri->e1, ep))) / det;
+					if ((beta < 0) || (gamma < 0)) {
+						break;
+					} else if ((beta + gamma) > 1) {
+						break;
+					} else {
+						if (t1 > 0 && (t1 < ret.t || ret.t < 0)) { // object that will be displayed at that pixel
+							ret.b = beta;
+							ret.g = gamma;
+							ret.t = t1;
+							si = (void *)tri;
+							ret.type = TRIANGLE;
+						}
+					}
 				}
 				break;
 			case NONE:
@@ -194,7 +353,6 @@ trace_t trace_ray(ray3_t *r, shape_t *s, void *skip) {
 void generate_image(vec3_t *pixels, config_t *c) {
 	int total = c->width * c->height;
 	// world coordinates
-	vec3_t w = normalize(negate(c->viewdir));
 	vec3_t u = normalize(cross(c->viewdir, c->updir));
 	vec3_t v = normalize(cross(u, c->viewdir));
 	
@@ -210,7 +368,6 @@ void generate_image(vec3_t *pixels, config_t *c) {
 	vec3_t ul = add(add(center, scale((-0.5 * width), u)), scale(( 0.5 * height), v));
 	vec3_t ur = add(add(center, scale(( 0.5 * width), u)), scale(( 0.5 * height), v));
 	vec3_t ll = add(add(center, scale((-0.5 * width), u)), scale((-0.5 * height), v));
-	vec3_t lr = add(add(center, scale(( 0.5 * width), u)), scale((-0.5 * height), v));
 
 	vec3_t dx = scale((1.0 / (c->width - 1)), sub(ur, ul));
 	vec3_t dy = scale((1.0 / (c->height - 1)), sub(ll, ul));
@@ -225,17 +382,34 @@ void generate_image(vec3_t *pixels, config_t *c) {
 	
 		trace_t tr = trace_ray(&r, c->shape_head, NULL);
 		
+		vec3_t illum, diffuse, normal, vi, l, h;
+		light_t *cl = NULL;
+		vec3_t p = add(r.origin, scale(tr.t, r.dir));
+
 		switch (tr.type) {
 			case SPHERE:
 				sphere_t *s = (sphere_t *)(tr.shape);
-				// set up lighting equation variables
-				vec3_t illum = scale(s->mtl.ka, s->mtl.diffuse);
-				vec3_t p = add(r.origin, scale(tr.t, r.dir));
-				vec3_t normal = normalize(sub(p, s->center));
-				vec3_t vi = normalize(negate(r.dir));
-				vec3_t l, h;
+				if (s->texture) {
+					// replace diffuse color with texture lookup
+					vec3_t sphere_norm = scale(1.0 / s->radius, sub(p, s->center));
+					float sigma = acos(sphere_norm.z);
+					float theta = atan2f(sphere_norm.y, sphere_norm.x);
+					if (theta < 0) {
+						theta += (2 * M_PI);
+					}
+					float ucoord = theta / (2 * M_PI);
+					float vcoord = sigma / M_PI;
 
-				light_t *cl = c->light_head;
+					diffuse = texture_lookup(s->texture, ucoord, vcoord);
+				} else {
+					diffuse = s->mtl.diffuse;
+				}
+				// set up lighting equation variables
+				illum = scale(s->mtl.ka, diffuse);
+				normal = normalize(sub(p, s->center));
+				vi = normalize(negate(r.dir));
+				
+				cl = c->light_head;
 				while (cl) { // iterates through light_t linked list
 					if (cl->w) { // point light
 						l = normalize(sub(cl->pos, p));	
@@ -245,7 +419,7 @@ void generate_image(vec3_t *pixels, config_t *c) {
 					h = normalize(add(l, vi));
 					
 					// calculate diffuse and specular components
-					vec3_t df = scale((s->mtl.kd * fmax(0.0, dot(normal, l))), s->mtl.diffuse);
+					vec3_t df = scale((s->mtl.kd * fmax(0.0, dot(normal, l))), diffuse);
 					vec3_t sp = scale((s->mtl.ks * fmax(0.0, pow(dot(normal, h), s->mtl.n))), s->mtl.specular);
 					
 					vec3_t li = scale(cl->i, add(df, sp));
@@ -277,7 +451,72 @@ void generate_image(vec3_t *pixels, config_t *c) {
 				pixels[i] = rgb_clamp(illum);
 				break;
 			case TRIANGLE:
-				triangle *t = (triangle_t *)(tr.shape);
+				triangle_t *t = (triangle_t *)(tr.shape);
+				if (t->texture) {
+					// replace diffuse with texture lookup
+					float alpha = 1.0 - (tr.b + tr.g);
+					float ucoord = alpha * texcoords[t->texcoords[0]][0] +
+								   tr.b  * texcoords[t->texcoords[1]][0] +
+								   tr.g  * texcoords[t->texcoords[2]][0];
+					float vcoord = alpha * texcoords[t->texcoords[0]][1] +
+								   tr.b  * texcoords[t->texcoords[1]][1] +
+								   tr.g  * texcoords[t->texcoords[2]][1];
+					diffuse = texture_lookup(t->texture, ucoord, vcoord);
+				} else {
+					diffuse = t->mtl.diffuse;
+				}
+				// set up lighting equation variables
+				illum = scale(t->mtl.ka, diffuse);
+				if (t->normals[0] == -1) {
+					normal = t->snorm;
+				} else { // smooth shading normal
+					float alpha = 1.0 - (tr.b + tr.g);
+					normal = normalize(add(scale(alpha, normals[t->normals[0]]), 
+									   add(scale(tr.b,  normals[t->normals[1]]), 
+										   scale(tr.g,  normals[t->normals[2]]))));
+				}
+				vi = normalize(negate(r.dir));
+				
+				cl = c->light_head;
+				while (cl) { // iterates through light_t linked list
+					if (cl->w) { // point light
+						l = normalize(sub(cl->pos, p));	
+					} else { // directional light
+						l = normalize(negate(cl->pos));
+					}
+					h = normalize(add(l, vi));
+					
+					// calculate diffuse and specular components
+					vec3_t df = scale((t->mtl.kd * fmax(0.0, dot(normal, l))), diffuse);
+					vec3_t sp = scale((t->mtl.ks * fmax(0.0, pow(dot(normal, h), t->mtl.n))), t->mtl.specular);
+					
+					vec3_t li = scale(cl->i, add(df, sp));
+					
+					// check if shadow
+					float shadow = 1.0;
+					ray3_t sr = ray3_new(p, l);
+					
+					// trace ray between p and light
+					trace_t st = trace_ray(&sr, c->shape_head, (void *)t);
+					
+					if (st.t > 0) { // found intersection
+						if (cl->w) { // point light
+							// check if the intersection is past the light (no shadow) or not (yes shadow)
+							float light_dist = len(l);
+							if (light_dist >= st.t) {
+								shadow = 0.0;
+							}
+						} else {
+							shadow = 0.0;
+						}
+					} 
+
+					illum = add(illum, scale(shadow, li));
+					
+					cl = cl->next;
+				}
+				// clamp down to 1
+				pixels[i] = rgb_clamp(illum);
 				break;
 			case NONE:
 				pixels[i] = c->bkgcolor;
@@ -333,6 +572,7 @@ int main(int argc, char** argv) {
 	}
 	
 	config_t *conf = malloc(sizeof(config_t));
+	memset(conf, 0, sizeof(config_t));
 	
 	// read config file and fill in conf accordingly
 	if (generate_config(f, conf) == -1) {
