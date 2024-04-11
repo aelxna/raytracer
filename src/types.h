@@ -14,10 +14,10 @@ typedef enum {
 
 typedef struct {
 	vec3_t diffuse, specular;
-	float ka, kd, ks, n;
+	float ka, kd, ks, n, alpha, eta;
 } mtl_t;
 
-mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n);
+mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n, float alpha, float eta);
 
 typedef struct Texture texture_t;
 
@@ -110,6 +110,7 @@ typedef struct {
 	int width;
 	int height;
 	vec3_t bkgcolor;
+	float eta;
 	shape_t *shape_head;
 	light_t *light_head;
 	texture_t *texture_head;
@@ -119,10 +120,10 @@ void free_config(config_t *c);
 
 // Contains results from a call to trace_ray
 typedef struct {
-	objtype_t type;
-	void *shape;
+	shape_t *shape;
 	float b, g;
 	float t;
+	float shadow;
 } trace_t;
 
 #endif

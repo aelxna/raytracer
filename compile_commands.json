@@ -1,0 +1,67 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "src/main.o",
+      "src/main.c"
+    ],
+    "directory": "/home/elxna/5607/hw1d.elena.nelson",
+    "file": "/home/elxna/5607/hw1d.elena.nelson/src/main.c",
+    "output": "/home/elxna/5607/hw1d.elena.nelson/src/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "src/types.o",
+      "src/types.c"
+    ],
+    "directory": "/home/elxna/5607/hw1d.elena.nelson",
+    "file": "/home/elxna/5607/hw1d.elena.nelson/src/types.c",
+    "output": "/home/elxna/5607/hw1d.elena.nelson/src/types.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "src/vec3.o",
+      "src/vec3.c"
+    ],
+    "directory": "/home/elxna/5607/hw1d.elena.nelson",
+    "file": "/home/elxna/5607/hw1d.elena.nelson/src/vec3.c",
+    "output": "/home/elxna/5607/hw1d.elena.nelson/src/vec3.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "src/debug.o",
+      "src/debug.c"
+    ],
+    "directory": "/home/elxna/5607/hw1d.elena.nelson",
+    "file": "/home/elxna/5607/hw1d.elena.nelson/src/debug.c",
+    "output": "/home/elxna/5607/hw1d.elena.nelson/src/debug.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "src/stack.o",
+      "src/stack.c"
+    ],
+    "directory": "/home/elxna/5607/hw1d.elena.nelson",
+    "file": "/home/elxna/5607/hw1d.elena.nelson/src/stack.c",
+    "output": "/home/elxna/5607/hw1d.elena.nelson/src/stack.o"
+  }
+]

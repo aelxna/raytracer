@@ -1,3 +1,4 @@
 raytracer1b
 *.o
 src/*.o
+.cache/

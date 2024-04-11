@@ -7,14 +7,16 @@ extern vec3_t vertices[];
 extern vec3_t normals[];
 extern float texcoords[][2];
 
-mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n) {
+mtl_t mtl_new(vec3_t od, vec3_t os, float ka, float kd, float ks, float n, float alpha, float eta) {
 	mtl_t m = {
 		.diffuse = od, 
 		.specular = os, 
 		.ka = ka, 
 		.kd = kd, 
 		.ks = ks, 
-		.n = n
+		.n = n,
+		.alpha = alpha,
+		.eta = eta
 	};
 	return m;
 }

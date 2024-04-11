@@ -1,12 +1,12 @@
-OBJS	= src/main.o src/types.o src/vec3.o src/debug.o
-SOURCE	= src/main.c src/types.c src/vec3.c src/debug.c
-HEADER	= src/types.h src/vec3.h src/debug.h
-OUT	= raytracer1c
+OBJS	= src/main.o src/types.o src/vec3.o src/debug.o src/stack.o
+SOURCE	= src/main.c src/types.c src/vec3.c src/debug.c src/stack.c
+HEADER	= src/types.h src/vec3.h src/debug.h src/stack.h
+OUT	= raytracer1d
 LFLAGS	 = -lm -Wall
 
-all: raytracer1c
+all: raytracer1d
 
-raytracer1c: $(OBJS)
+raytracer1d: $(OBJS)
 	$(CC) -o $@ $^ $(LFLAGS)
 
 %.o: %.c $(HEADER)
