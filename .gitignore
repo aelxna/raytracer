@@ -1,4 +1,5 @@
-raytracer1b
+raytracer
 *.o
 src/*.o
 .cache/
+compilecommands.json
