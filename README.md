@@ -1,4 +1,4 @@
-# Assignment 1d: Transparency and Mirror Reflections
+# Raytracer
 
 ## Compiling
 A Makefile is provided. Run `make` to compile.
@@ -6,7 +6,7 @@ A Makefile is provided. Run `make` to compile.
 ## Running
 
 ```sh
-./raytracer1d <file> 
+./raytracer <file> 
 ```
 
 It will generate an ASCII PPM image based on the input file and output it to *filename*.ppm.
